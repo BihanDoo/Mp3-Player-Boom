@@ -39,7 +39,8 @@
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        app:layout_constraintBottom_toTopOf="@+id/transport_controls"
+        app:layout_constraintBottom_toTopOf="@id/clipattributespanel"
+
         app:layout_constraintTop_toBottomOf="@id/header">
 
         <LinearLayout
@@ -257,11 +258,50 @@
 
     <LinearLayout
         android:id="@+id/clipattributespanel"
-        android:layout_width="409dp"
-        android:layout_height="190dp"
-        android:orientation="horizontal"
-        tools:layout_editor_absoluteX="1dp"
-        tools:layout_editor_absoluteY="395dp"></LinearLayout>
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="#1E1E1E"
+        android:padding="12dp"
+        android:visibility="gone"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/aaaa">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Clip Attributes"
+            android:textColor="#FFFFFF"
+            android:textStyle="bold"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Volume"
+            android:textColor="#AAAAAA"/>
+
+        <SeekBar
+            android:id="@+id/clip_volume"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:max="100"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Pan (L / R)"
+            android:textColor="#AAAAAA"/>
+
+        <SeekBar
+            android:id="@+id/clip_pan"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:max="200"
+            android:progress="100"/>
+
+    </LinearLayout>
+
 
     <!-- Bottom Transport Controls -->
 
@@ -275,11 +315,7 @@
         android:padding="16dp"
         app:layout_constraintBottom_toBottomOf="parent">
 
-        <SeekBar
-            android:id="@+id/clip_volume"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:max="100"/>
+
 
 
 
@@ -292,7 +328,7 @@
         android:gravity="center"
         android:orientation="horizontal"
         android:padding="16dp"
-        app:layout_constraintBottom_toBottomOf="parent">
+        >
 
         <ImageButton
             android:id="@+id/button4"
