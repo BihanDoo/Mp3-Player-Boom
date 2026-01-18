@@ -66,6 +66,7 @@ private val recordedClips = mutableListOf<AudioClip>()
     private lateinit var pauseBtn: ImageButton
     private lateinit var rewindBtn: ImageButton
 
+    private lateinit var clipVolumeSeek: SeekBar
 
 
     private lateinit var  gridlayer: FrameLayout
@@ -152,7 +153,8 @@ private val recordedClips = mutableListOf<AudioClip>()
         val filePath: String,
         val startMs: Int,
         var durationMs: Int = 0,
-        var waveform: FloatArray? = null
+        var waveform: FloatArray? = null,
+        var volume: Float = 1.0f
 
     )
 
@@ -198,6 +200,22 @@ private val recordedClips = mutableListOf<AudioClip>()
     }
 
     private fun initializeViews() {
+
+        clipVolumeSeek = findViewById<SeekBar>(R.id.clip_volume)
+
+        clipVolumeSeek.setOnSeekBarChangeListener(object :
+            SeekBar.OnSeekBarChangeListener {
+
+            override fun onProgressChanged(sb: SeekBar?, progress: Int, fromUser: Boolean) {
+                if (!fromUser) return
+                selectedClip?.let {
+                    setClipVolume(it, progress / 100f)
+                }
+            }
+
+            override fun onStartTrackingTouch(sb: SeekBar?) {}
+            override fun onStopTrackingTouch(sb: SeekBar?) {}
+        })
         importBtn = findViewById(R.id.button2)
         trackInfoText = findViewById(R.id.textview1)
         seekBar = findViewById(R.id.seekbar1)
@@ -315,6 +333,10 @@ private val recordedClips = mutableListOf<AudioClip>()
 
             override fun onStopTrackingTouch(sb: SeekBar?) {}
         })
+
+
+
+
 
 
 
@@ -811,6 +833,7 @@ private fun startTransportClock() {
 
             clipView.setOnClickListener {
                 selectedClip = clip
+                clipVolumeSeek.progress = (clip.volume * 100).toInt()
                 renderTimeline()
             }
 
@@ -857,6 +880,7 @@ private fun startTransportClock() {
             setDataSource(clip.filePath)
             prepare()
             seekTo(offsetMs.coerceAtLeast(0))
+            setVolume(clip.volume, clip.volume)
             start()
         }
 
@@ -870,6 +894,15 @@ private fun startTransportClock() {
         activeClipPlayers.clear()
     }
 
+
+    private fun setClipVolume(clip: AudioClip, volume: Float) {
+        clip.volume = volume.coerceIn(0f, 1f)
+
+        activeClipPlayers[clip]?.setVolume(
+            clip.volume,
+            clip.volume
+        )
+    }
 
 
 

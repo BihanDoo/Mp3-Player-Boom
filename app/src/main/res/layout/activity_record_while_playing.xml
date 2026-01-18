@@ -254,7 +254,36 @@
         </LinearLayout>
     </ScrollView>
 
+
+    <LinearLayout
+        android:id="@+id/clipattributespanel"
+        android:layout_width="409dp"
+        android:layout_height="190dp"
+        android:orientation="horizontal"
+        tools:layout_editor_absoluteX="1dp"
+        tools:layout_editor_absoluteY="395dp"></LinearLayout>
+
     <!-- Bottom Transport Controls -->
+
+    <LinearLayout
+        android:id="@+id/aaaa"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="#1E1E1E"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:padding="16dp"
+        app:layout_constraintBottom_toBottomOf="parent">
+
+        <SeekBar
+            android:id="@+id/clip_volume"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:max="100"/>
+
+
+
+
     <LinearLayout
         android:id="@+id/transport_controls"
         android:layout_width="match_parent"
@@ -290,9 +319,9 @@
             app:tint="#FFC107"
             android:enabled="false" />
 
-        <View
-            android:layout_width="24dp"
-            android:layout_height="0dp" />
+<!--        <View-->
+<!--            android:layout_width="24dp"-->
+<!--            android:layout_height="0dp" />-->
 
         <ImageButton
             android:id="@+id/button_start"
@@ -332,5 +361,9 @@
 
 
     </LinearLayout>
+    </LinearLayout>
+
+
+
 
 </androidx.constraintlayout.widget.ConstraintLayout>
