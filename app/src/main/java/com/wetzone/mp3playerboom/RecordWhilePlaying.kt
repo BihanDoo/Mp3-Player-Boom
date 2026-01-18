@@ -49,6 +49,11 @@ private val recordedClips = mutableListOf<AudioClip>()
 
     private val filePathsList = ArrayList<String>()
 
+
+
+    private val activeClipPlayers = mutableMapOf<AudioClip, MediaPlayer>()
+
+
     private lateinit var importBtn: Button
     private lateinit var trackInfoText: TextView
     private lateinit var seekBar: SeekBar
@@ -384,6 +389,10 @@ private val recordedClips = mutableListOf<AudioClip>()
 //            playhead.translationX = centerPx.toFloat()
 //            timelineScroll.scrollTo(playheadPx - centerPx, 0)
 //        }
+
+        // Resync clip players after seek
+        stopAllClipPlayers()
+
     }
 
 
@@ -422,6 +431,25 @@ private fun startTransportClock() {
                 mp?.let { player ->
                     playheadMs = player.currentPosition
                     seekBar.progress = playheadMs
+
+
+
+                    // === CLIP SYNC ENGINE ===
+                    recordTrack.forEach { clip ->
+                        val clipStart = clip.startMs
+                        val clipEnd = clip.startMs + clip.durationMs
+
+                        if (playheadMs in clipStart until clipEnd) {
+                            val offset = playheadMs - clipStart
+                            startClipPlayer(clip, offset)
+                        } else {
+                            activeClipPlayers[clip]?.let {
+                                it.stop()
+                                it.release()
+                                activeClipPlayers.remove(clip)
+                            }
+                        }
+                    }
 
                     val timelineWidth = timelineScroll.width
                     val centerPx = (timelineWidth * PLAYHEAD_CENTER_RATIO).toInt()
@@ -822,6 +850,30 @@ private fun startTransportClock() {
 
 
 
+    private fun startClipPlayer(clip: AudioClip, offsetMs: Int) {
+        if (activeClipPlayers.containsKey(clip)) return
+
+        val player = MediaPlayer().apply {
+            setDataSource(clip.filePath)
+            prepare()
+            seekTo(offsetMs.coerceAtLeast(0))
+            start()
+        }
+
+        activeClipPlayers[clip] = player
+    }
+    private fun stopAllClipPlayers() {
+        activeClipPlayers.values.forEach {
+            it.stop()
+            it.release()
+        }
+        activeClipPlayers.clear()
+    }
+
+
+
+
+
     private fun extractWaveform(file: File, samples: Int = 1000): FloatArray {
         val extractor = android.media.MediaExtractor()
         extractor.setDataSource(file.absolutePath)
@@ -911,6 +963,8 @@ private fun startTransportClock() {
             it.pause()
         }
         timerTask?.cancel()
+        activeClipPlayers.values.forEach { it.pause() }
+
         playBtn.isEnabled = true
         pauseBtn.isEnabled = false
     }
@@ -1029,5 +1083,7 @@ private fun startTransportClock() {
         mp?.release()
         mediaRecorder?.release()
         timer.cancel()
+        stopAllClipPlayers()
+
     }
 }
