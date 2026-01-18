@@ -54,6 +54,9 @@ private val recordedClips = mutableListOf<AudioClip>()
     private val activeClipPlayers = mutableMapOf<AudioClip, MediaPlayer>()
 
 
+    private lateinit var clipPanSeek: SeekBar
+
+
     private lateinit var importBtn: Button
     private lateinit var trackInfoText: TextView
     private lateinit var seekBar: SeekBar
@@ -113,6 +116,9 @@ private val recordedClips = mutableListOf<AudioClip>()
     }
 
 
+
+    private var isUserSeeking = false
+
     // --- GRID / SNAP ---
     private var snapEnabled = true
 
@@ -154,7 +160,8 @@ private val recordedClips = mutableListOf<AudioClip>()
         val startMs: Int,
         var durationMs: Int = 0,
         var waveform: FloatArray? = null,
-        var volume: Float = 1.0f
+        var volume: Float = 1.0f,
+        var pan: Float = 0f
 
     )
 
@@ -202,6 +209,26 @@ private val recordedClips = mutableListOf<AudioClip>()
     private fun initializeViews() {
 
         clipVolumeSeek = findViewById<SeekBar>(R.id.clip_volume)
+        clipPanSeek = findViewById(R.id.clip_pan)
+
+        clipPanSeek.setOnSeekBarChangeListener(object :
+            SeekBar.OnSeekBarChangeListener {
+
+            override fun onProgressChanged(sb: SeekBar?, progress: Int, fromUser: Boolean) {
+                if (!fromUser) return
+
+                // progress: 0..200 → pan: -1.0 .. +1.0
+                val pan = ((progress - 100) / 100f).coerceIn(-1f, 1f)
+
+                selectedClip?.let {
+                    setClipPan(it, pan)
+                }
+            }
+
+            override fun onStartTrackingTouch(sb: SeekBar?) {}
+            override fun onStopTrackingTouch(sb: SeekBar?) {}
+        })
+
 
         clipVolumeSeek.setOnSeekBarChangeListener(object :
             SeekBar.OnSeekBarChangeListener {
@@ -239,6 +266,7 @@ private val recordedClips = mutableListOf<AudioClip>()
 
         gridlayer.setOnTouchListener { _, event ->
             if (event.action == MotionEvent.ACTION_DOWN) {
+                isUserSeeking = true
 
                 val scrollX = gridlayer.scrollX
                 val touchX = event.x.toInt()
@@ -396,26 +424,18 @@ private val recordedClips = mutableListOf<AudioClip>()
         mp?.seekTo(clampedMs)
         seekBar.progress = clampedMs
 
-        val timelineWidth = timelineScroll.width
-        val centerPx = (timelineWidth * PLAYHEAD_CENTER_RATIO).toInt()
         val playheadPx = msToPx(clampedMs)
 
-
+        // USER SEEK MODE — glue playhead to click
         playhead.translationX = playheadPx.toFloat()
-        //timelineScroll.scrollTo(0, 0)
+        timelineScroll.scrollTo(
+            maxOf(0, playheadPx - timelineScroll.width / 2),
+            0
+        )
 
-//        if (playheadPx < centerPx) {
-//            playhead.translationX = playheadPx.toFloat()
-//            timelineScroll.scrollTo(0, 0)
-//        } else {
-//            playhead.translationX = centerPx.toFloat()
-//            timelineScroll.scrollTo(playheadPx - centerPx, 0)
-//        }
-
-        // Resync clip players after seek
         stopAllClipPlayers()
-
     }
+
 
 
 //removed in v3
@@ -833,9 +853,18 @@ private fun startTransportClock() {
 
             clipView.setOnClickListener {
                 selectedClip = clip
+
+                // show the panel
+                findViewById<LinearLayout>(R.id.clipattributespanel).visibility = View.VISIBLE
+
+                // update volume & pan sliders
                 clipVolumeSeek.progress = (clip.volume * 100).toInt()
+                clipPanSeek.progress = ((clip.pan + 1f) * 100).toInt()
+
                 renderTimeline()
             }
+
+
 
 
 // Generate waveform once
@@ -880,7 +909,11 @@ private fun startTransportClock() {
             setDataSource(clip.filePath)
             prepare()
             seekTo(offsetMs.coerceAtLeast(0))
-            setVolume(clip.volume, clip.volume)
+            val left = clip.volume * (1f - clip.pan.coerceIn(0f, 1f))
+            val right = clip.volume * (1f + clip.pan.coerceIn(-1f, 0f))
+
+            setVolume(left.coerceIn(0f, 1f), right.coerceIn(0f, 1f))
+
             start()
         }
 
@@ -893,6 +926,20 @@ private fun startTransportClock() {
         }
         activeClipPlayers.clear()
     }
+
+    private fun setClipPan(clip: AudioClip, pan: Float) {
+        clip.pan = pan.coerceIn(-1f, 1f)
+
+        activeClipPlayers[clip]?.let { player ->
+            val left = clip.volume * (1f - clip.pan.coerceIn(0f, 1f))
+            val right = clip.volume * (1f + clip.pan.coerceIn(-1f, 0f))
+            player.setVolume(
+                left.coerceIn(0f, 1f),
+                right.coerceIn(0f, 1f)
+            )
+        }
+    }
+
 
 
     private fun setClipVolume(clip: AudioClip, volume: Float) {
@@ -956,11 +1003,14 @@ private fun startTransportClock() {
 
     //v2
     private fun startPlayback() {
+
         if (mp == null && currentFile.isNotEmpty()) {
             createMediaPlayer()
         }
 
         mp?.let { player ->
+            isUserSeeking = false
+
             //player.seekTo(playheadMs)
             player.start()
             //v1
